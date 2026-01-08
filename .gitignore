@@ -1,5 +1,6 @@
 .vscode/
 co2_mm_mlo.csv
+*ubyte*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
