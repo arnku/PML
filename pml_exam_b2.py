@@ -6,7 +6,7 @@ import scipy.spatial
 import scipy.optimize as opt
 import pandas as pd
 
-data = np.genfromtxt('C:/Users/simon/OneDrive/Skrivebord/TestPythonPML/data_part_B.csv', delimiter=',')
+data = np.genfromtxt('data_part_B.csv', delimiter=',')
 x_i = data[:,0]
 y_i = data[:,1]
 delta_i = data[:,2]
@@ -48,7 +48,7 @@ def negLogLikelihood(theta, x, y, delta):
     term1 = 0.5 * y.T @ alpha
     term2 = 0.5 * np.log(np.linalg.det(Ky))
     term3 = 0.5 * len(y) * np.log(2 * np.pi)
-    return -(term1 + term2 + term3).item()
+    return (term1 + term2 + term3)
 
 def optimize_params(ranges, kernel, Ngrid, x, y, delta):
     opt_params = opt.brute(negLogLikelihood, ranges,args=(x, y, delta), Ns=Ngrid, finish=None)
@@ -56,20 +56,31 @@ def optimize_params(ranges, kernel, Ngrid, x, y, delta):
     theta = opt_params[1:]
     return noise_var, theta
 
-def conditional(X, y, X_star, noise_var, eta, kernel):
-    # Ensure correct shapes
+def conditional(X, y, X_star, noise_var, gamma, delta_i):
     X = X.reshape(-1, 1)
     X_star = X_star.reshape(-1, 1)
+    D = np.diag(delta_i)
 
-    K_xx = kernel(X, X, eta)
-    K_xs = kernel(X, X_star, eta)
-    K_ss = kernel(X_star, X_star, eta)
-    # Ky = covariance(X, eta, noise_var=noise_var)
-    Ky = K_xx + noise_var**2 * np.eye(len(y))
+    # Usual kernels
+    K_xx_pure = gaussian_kernel(X, X, gamma)
+    K_xs = gaussian_kernel(X, X_star, gamma)
+    K_ss = gaussian_kernel(X_star, X_star, gamma)
+
+    # First derivative kernel: K1(X, X_star)
+    # K1_ij = -2 * gamma * (x_i - x_star_j) * K_ij
+    diff_star = X - X_star.T
+    K1_xs = -2 * gamma * diff_star * K_xs
+
+    # Ky must be the same matrix used in NLL (the B.2.2 derivative-corrected one)
+    Ky = covariance(X, gamma, delta_i, noise_var)
     Ky_inv = np.linalg.inv(Ky)
 
-    mu_star = K_xs.T @ Ky_inv @ y
-    sigma_star = K_ss - K_xs.T @ Ky_inv @ K_xs
+    # CORRECTED cross-covariance for the Taylor model
+    # Cov(y, f_star) = K_xs - D @ K1_xs
+    K_y_star = K_xs - D @ K1_xs
+
+    mu_star = K_y_star.T @ Ky_inv @ y
+    sigma_star = K_ss - K_y_star.T @ Ky_inv @ K_y_star
 
     return mu_star, sigma_star
 
@@ -88,7 +99,7 @@ def plot_target():
 def plot_estimate(noise_var, theta, x_i, y_i, title=""):
   f = lambda x: -x**2 + 2* 1/(1 + np.exp(-10*x))
   x_star = np.linspace(-1,1, num=100)
-  mu_star, sigma_star = conditional(x_i, y_i, x_star, noise_var, theta, kernel)
+  mu_star, sigma_star = conditional(x_i, y_i, x_star, noise_var, theta, delta_i)
   mu_star.shape
   print("sigma_star diag:", np.diag(sigma_star))
   lower_error_bound = mu_star - np.sqrt(np.diag(sigma_star))*1.96
