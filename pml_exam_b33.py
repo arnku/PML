@@ -35,6 +35,7 @@ def dd_gaussian_kernel(X, Xp):
     K = gaussian_kernel(X, Xp)
     return K * (2 * gamma - 4 * gamma**2 * dists)
 
+# Old log_posterior from b2.2
 def log_posterior(delta):
     K = gaussian_kernel(X_col, X_col)
     K1 = d_gaussian_kernel(X_col, X_col)
@@ -74,7 +75,7 @@ def sample_likelihood(init_samples, warmup_steps, num_samples, step_size):
     mcmc.run()
     return mcmc
 
-
+# Compute the marginal posterior predictive mean and variance after formula deduced in report
 def conditional_f_marginal(samples, x_grid):
     x_grid_col = x_grid.unsqueeze(1)
     K_ss = gaussian_kernel(x_grid_col, x_grid_col)
@@ -118,12 +119,12 @@ def conditional_f_marginal(samples, x_grid):
 
 if __name__ == "__main__":
     base_delta = torch.zeros(len(y_i_raw), dtype=torch.float64, device=device)
+        
     
-
     init_delta = base_delta.unsqueeze(0).repeat(4, 1)
     mcmc = sample_likelihood(init_delta, 1000, 2000, 0.01)
     samples = mcmc.get_samples()['delta']
-    
+        
     plt.figure(figsize=(6, 6))
     plt.scatter(samples[:, 9], samples[:, 10], alpha=0.1, label='MCMC Samples')
     plt.scatter(-0.25, 0.25, color='red', s=100, label='True Values (-0.25, 0.25)')
@@ -138,7 +139,7 @@ if __name__ == "__main__":
     x_grid = torch.linspace(-1, 1, 100, dtype=torch.float64)
     mu, var = conditional_f_marginal(samples, x_grid)
     std = torch.sqrt(var)
-    
+        
     plt.figure(figsize=(10, 5))
     f_true = lambda x: -x**2 + 2 * (1 / (1 + np.exp(-10 * x))) #
     plt.plot(x_grid, f_true(x_grid), 'k--', label='True Function')
@@ -155,7 +156,6 @@ if __name__ == "__main__":
     arviz.plot_trace(arviz.from_pyro(mcmc), var_names=["delta"])
     plt.savefig("trace_plots_pyro.png",dpi=300)
     plt.close()
-
     print(arviz.summary(arviz.from_pyro(mcmc), var_names=["delta"]))
     # Plot trace plots
     arviz.plot_rank(arviz.from_pyro(mcmc), var_names=["delta"])
