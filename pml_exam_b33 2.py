@@ -56,7 +56,6 @@ def potential_fn_wrapper(z):
     return -log_posterior(z['delta'])
 
 def sample_likelihood(init_samples, warmup_steps, num_samples, step_size):
-    # Potential energy function = - log_prob
     num_chains = 4
     mcmc_kernel = NUTS(
         potential_fn=potential_fn_wrapper,
@@ -73,7 +72,6 @@ def sample_likelihood(init_samples, warmup_steps, num_samples, step_size):
         num_chains=num_chains
     )
     mcmc.run()
-    #todo: need arviz
     return mcmc
 
 
@@ -133,7 +131,8 @@ if __name__ == "__main__":
     plt.ylabel('$\Delta_{10}$')
     plt.legend()
     plt.title('D5: Posterior Samples of Measurement Errors')
-    plt.savefig("delta9_delta10_scatter_pyro.png")
+    plt.grid(True, which='both', linestyle='--', linewidth=1)
+    plt.savefig("delta9_delta10_scatter_pyro.png",dpi=300)
     plt.close()
     # 
     x_grid = torch.linspace(-1, 1, 100, dtype=torch.float64)
@@ -146,9 +145,19 @@ if __name__ == "__main__":
     plt.plot(x_grid, mu.detach(), 'b', label='Marginal Mean')
     plt.fill_between(x_grid, (mu - 1.96*std).detach(), (mu + 1.96*std).detach(), color='blue', alpha=0.2, label='95% CI')
     plt.scatter(x_i_raw, y_i_raw, c='red', s=10, alpha=0.5, label='Noisy Data')
-    plt.title('D5: Marginal Posterior Predictive $p(f|x, \mathcal{D})$')
+    plt.title('D5: Marginal Posterior Predictive $p(\mathcal{\Delta}|X,y,\theta,\sigma_y^2,\sigma_x^2)$')
     plt.legend()
-    plt.savefig("marginal_posterior_predictive.png")
+    plt.grid(True, which='both', linestyle='--', linewidth=1)
+    plt.savefig("marginal_posterior_predictive.png",dpi=300)
+    plt.close()
+    # Plot Delta posterior
+    plt.figure()
+    arviz.plot_trace(arviz.from_pyro(mcmc), var_names=["delta"])
+    plt.savefig("trace_plots_pyro.png",dpi=300)
     plt.close()
 
     print(arviz.summary(arviz.from_pyro(mcmc), var_names=["delta"]))
+    # Plot trace plots
+    arviz.plot_rank(arviz.from_pyro(mcmc), var_names=["delta"])
+    plt.savefig("rank_plots_pyro.png",dpi=300)
+    plt.close()
