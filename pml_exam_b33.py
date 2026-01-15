@@ -119,13 +119,13 @@ def conditional_f_marginal(samples, x_grid):
 
 if __name__ == "__main__":
     base_delta = torch.zeros(len(y_i_raw), dtype=torch.float64, device=device)
-        
-    
+
+
     init_delta = base_delta.unsqueeze(0).repeat(4, 1)
     mcmc = sample_likelihood(init_delta, 1000, 2000, 0.01)
     samples = mcmc.get_samples()['delta']
-        
-    plt.figure(figsize=(6, 6))
+
+    plt.figure(figsize=(5, 5))
     plt.scatter(samples[:, 9], samples[:, 10], alpha=0.1, label='MCMC Samples')
     plt.scatter(-0.25, 0.25, color='red', s=100, label='True Values (-0.25, 0.25)')
     plt.xlabel('$\Delta_9$')
@@ -139,8 +139,8 @@ if __name__ == "__main__":
     x_grid = torch.linspace(-1, 1, 100, dtype=torch.float64)
     mu, var = conditional_f_marginal(samples, x_grid)
     std = torch.sqrt(var)
-        
-    plt.figure(figsize=(10, 5))
+
+    plt.figure(figsize=(5, 5))
     f_true = lambda x: -x**2 + 2 * (1 / (1 + np.exp(-10 * x))) #
     plt.plot(x_grid, f_true(x_grid), 'k--', label='True Function')
     plt.plot(x_grid, mu.detach(), 'b', label='Marginal Mean')
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     plt.savefig("marginal_posterior_predictive.png",dpi=300)
     plt.close()
     # Plot Delta posterior
-    plt.figure()
+    plt.figure(figsize = (5,5))
     arviz.plot_trace(arviz.from_pyro(mcmc), var_names=["delta"])
     plt.savefig("trace_plots_pyro.png",dpi=300)
     plt.close()
