@@ -16,11 +16,11 @@ true_deltas = torch.tensor(data[:, 2], dtype=torch.float64, device=device)
 
 X_col = x_i_raw.unsqueeze(1)
 Y_col = y_i_raw.unsqueeze(1)
-
+# Setup variables
 sigma_x = 0.1   
 sigma_y = 0.12   
 gamma = 3.4   
-
+# Kernels and differentials deduced in report
 def gaussian_kernel(X, Xp):
     dists = torch.cdist(X, Xp, p=2)**2
     return torch.exp(-gamma * dists)
@@ -35,7 +35,7 @@ def dd_gaussian_kernel(X, Xp):
     K = gaussian_kernel(X, Xp)
     return K * (2 * gamma - 4 * gamma**2 * dists)
 
-# Old log_posterior from b2.2
+# Old log_posterior from deduced in b2.2
 def log_posterior(delta):
     K = gaussian_kernel(X_col, X_col)
     K1 = d_gaussian_kernel(X_col, X_col)
@@ -55,7 +55,7 @@ def log_posterior(delta):
 
 def potential_fn_wrapper(z):
     return -log_posterior(z['delta'])
-
+# Sample likelihood 'stolen' from assignment files
 def sample_likelihood(init_samples, warmup_steps, num_samples, step_size):
     num_chains = 4
     mcmc_kernel = NUTS(
@@ -84,7 +84,7 @@ def conditional_f_marginal(samples, x_grid):
     var_list = []
     
     idx = np.random.choice(len(samples), size=100, replace=False)
-    
+    # Use the monte carlo estimate for both variance and mean
     for i in idx:
         delta = samples[i]
         D = torch.diag(delta)
@@ -116,15 +116,16 @@ def conditional_f_marginal(samples, x_grid):
     var_marginal = var_stack.mean(dim=0) + mu_stack.var(dim=0)
     
     return mu_marginal, var_marginal
-
+# MCMC Seems to want the __main___ statement
 if __name__ == "__main__":
     base_delta = torch.zeros(len(y_i_raw), dtype=torch.float64, device=device)
 
 
     init_delta = base_delta.unsqueeze(0).repeat(4, 1)
+    # Run with 1000 warmup and 2000 samples on 4 chains
     mcmc = sample_likelihood(init_delta, 1000, 2000, 0.01)
     samples = mcmc.get_samples()['delta']
-
+    # Plot delta9 and delta10
     plt.figure(figsize=(5, 5))
     plt.scatter(samples[:, 9], samples[:, 10], alpha=0.1, label='MCMC Samples')
     plt.scatter(-0.25, 0.25, color='red', s=100, label='True Values (-0.25, 0.25)')
@@ -135,11 +136,11 @@ if __name__ == "__main__":
     plt.grid(True, which='both', linestyle='--', linewidth=1)
     plt.savefig("delta9_delta10_scatter_pyro.png",dpi=300)
     plt.close()
-    # 
+    # Make x_grid for other plots
     x_grid = torch.linspace(-1, 1, 100, dtype=torch.float64)
     mu, var = conditional_f_marginal(samples, x_grid)
     std = torch.sqrt(var)
-
+    # Plot marginal posterior predictive for delta
     plt.figure(figsize=(5, 5))
     f_true = lambda x: -x**2 + 2 * (1 / (1 + np.exp(-10 * x))) #
     plt.plot(x_grid, f_true(x_grid), 'k--', label='True Function')
