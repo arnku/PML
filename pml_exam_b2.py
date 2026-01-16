@@ -11,7 +11,7 @@ x_i = data[:,0]
 y_i = data[:,1]
 delta_i = data[:,2]
 x_i_truth = x_i - delta_i
-D = np.diag(delta_i)  # D is the diagonal matrix of delta_i
+D = np.diag(delta_i)
 
 # Setup kernel
 def gaussian_kernel(X,Xprime, gamma=2):
@@ -42,7 +42,7 @@ def negLogLikelihood(theta, x, y, delta):
     noise_y, gamma = theta[0], theta[1]
     Ky = covariance(x, gamma, delta, noise_y)
     
-    # Stable computation using Cholesky
+    # Stable computation using Cholesky decomp
     L = scipy.linalg.cholesky(Ky, lower=True)
     # Compute the inverse using Cholesky factors
     alpha = scipy.linalg.solve_triangular(L.T, scipy.linalg.solve_triangular(L, y, lower=True))
