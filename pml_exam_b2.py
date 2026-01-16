@@ -12,10 +12,12 @@ y_i = data[:,1]
 delta_i = data[:,2]
 x_i_truth = x_i - delta_i
 D = np.diag(delta_i)  # D is the diagonal matrix of delta_i
+
+# Setup kernel
 def gaussian_kernel(X,Xprime, gamma=2):
     dists = scipy.spatial.distance.cdist(X,Xprime,metric='sqeuclidean')
     return np.exp(-gamma*dists)
-
+# Covariance function for calculating covariance as deduced in b2.2
 def covariance(x, gamma, delta=None, noise_var=0):
     x = x.reshape(-1, 1)
 
@@ -35,7 +37,7 @@ def covariance(x, gamma, delta=None, noise_var=0):
         Ky = K
 
     return Ky + (noise_var**2) * np.eye(len(x))
-
+# Negative likelihood function as also deduced in b2.2
 def negLogLikelihood(theta, x, y, delta):
     noise_y, gamma = theta[0], theta[1]
     Ky = covariance(x, gamma, delta, noise_y)
@@ -49,13 +51,13 @@ def negLogLikelihood(theta, x, y, delta):
     term2 = 0.5 * np.log(np.linalg.det(Ky))
     term3 = 0.5 * len(y) * np.log(2 * np.pi)
     return (term1 + term2 + term3)
-
+# Optimize params 'stolen' from one of the assignments
 def optimize_params(ranges, kernel, Ngrid, x, y, delta):
     opt_params = opt.brute(negLogLikelihood, ranges,args=(x, y, delta), Ns=Ngrid, finish=None)
     noise_var = opt_params[0]
     theta = opt_params[1:]
     return noise_var, theta
-
+# New mu and sigma variance from new kernel:
 def conditional(X, y, X_star, noise_var, gamma, delta_i):
     X = X.reshape(-1, 1)
     X_star = X_star.reshape(-1, 1)
@@ -83,13 +85,13 @@ def conditional(X, y, X_star, noise_var, gamma, delta_i):
     sigma_star = K_ss - K_y_star.T @ Ky_inv @ K_y_star
 
     return mu_star, sigma_star
-
+# Specify kernel ranges and Ngrid. Then optimize the parameters for noise_var and theta
 kernel = gaussian_kernel
 ranges = ((0.01, 1.0), (0.1, 10.0))  # noise_var, gamma
 Ngrid = 10
 noise_var, theta = optimize_params(ranges, kernel, Ngrid, x_i, y_i, delta_i)
 print("optimal params:", noise_var, theta)
-
+# Plot functions for plotting the ground truth against the gaussian model deduced
 def plot_target():
   f = lambda x: -x**2 + 2* 1/(1 + np.exp(-10*x))
   x = np.linspace(-1,1, num=100)
@@ -114,7 +116,7 @@ def plot_estimate(noise_var, theta, x_i, y_i, title=""):
   plt.savefig("gp_estimate.png")
   plt.show()
   plt.close()
-
+# Plot the results for both likelihood and our gaussian model
 plot_estimate(noise_var, theta, x_i, y_i, title="Estimate with optimized parameters")
 # Plot likelihood surface
 noise_var_range = np.linspace(0.001, 10.0, 20)
